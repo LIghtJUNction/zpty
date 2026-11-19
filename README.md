@@ -127,3 +127,9 @@ cargo run -p zpty --example capture
 The example selects `/bin/sh` on Unix and native PowerShell on Windows. It verifies round-trip text, the resized 100-column by 30-row console, successful child exit, and a separately owned process exiting with code 7. Its timeout and printing harness uses `std`; the library remains `#![no_std]`.
 
 The capture example validates PTY I/O, dimensions and owned-child status. Terminal emulation, native-window pixels and application packaging remain consumer responsibilities. Library build checks do not establish those application behaviors.
+
+## Independent candidate validation
+
+Run `python3 scripts/check.py` from this repository. It preserves the existing unit tests, documentation tests, capture example and native Darwin fixture; it adds no new PTY behavior tests. A platform with zero unit or documentation tests reports zero. Darwin runtime acceptance runs only on macOS. The library supports Linux/macOS/Windows, so a bare-metal no_std target is not claimed.
+
+The validation workflow is manual/reusable and requires a full commit SHA. Pushes do not start CI. The separate Release workflow selects or resumes an immutable candidate, waits for all three native-platform gates, then publishes that same crate. Publication requires credentials supplied by the repository owner; candidate validation does not.

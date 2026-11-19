@@ -1,0 +1,67 @@
+name: Validate zpty release candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Full existing candidate commit SHA
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      ref:
+        description: Exact candidate commit to validate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zpty-candidate-${{ inputs.ref }}
+  cancel-in-progress: false
+
+jobs:
+  native:
+    name: Native PTY on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require the exact source revision
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ inputs.ref }}
+        run: |
+          python3 - <<'PY'
+          import os, re, subprocess
+          candidate = os.environ["CANDIDATE_SHA"]
+          if not re.fullmatch(r"[0-9a-f]{40}", candidate):
+              raise SystemExit("ref must be a full lowercase commit SHA")
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if actual != candidate:
+              raise SystemExit("Checkout differs from the requested candidate")
+          subprocess.run(["git", "merge-base", "--is-ancestor", candidate, "origin/main"], check=True)
+          PY
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable action
+        with:
+          toolchain: "1.100.0"
+          components: rustfmt, clippy
+      - name: Existing tests, runtime example, no_std and package checks
+        run: python3 scripts/check.py
+      - name: Preserve the source-bound receipt and logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: zpty-${{ matrix.os }}-${{ inputs.ref }}
+          path: artifacts/acceptance/
+          if-no-files-found: error
+          retention-days: 30

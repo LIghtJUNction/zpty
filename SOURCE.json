@@ -1,0 +1,30 @@
+{
+  "upstream_repository": "https://github.com/LIghtJUNction/ztty",
+  "upstream_commit": "f2db31d7ea35bf1a0554e76d69d2e44faafd0cab",
+  "upstream_directory": "crates/zpty",
+  "previous_published_version": "0.2.1",
+  "independent_package_version": "0.2.2",
+  "scope": "Repository and package metadata extraction; all five production Rust files preserved byte-for-byte",
+  "production_files": {
+    "src/lib.rs": {
+      "git_blob": "ea960f56a813336a5c013489f7949ecc368270e2",
+      "sha256": "22779be10924e40908394da8a8db28c02cbc32e15a05d915a5fd0e4d2d3d4d8f"
+    },
+    "src/linux.rs": {
+      "git_blob": "80c3091e53c211492d3292c2ffe55754de6906af",
+      "sha256": "e86cf63c2c5f398f1a9a2ca666976e7b82f3f882a591f1498c4a94c73cc5f0b7"
+    },
+    "src/macos/spawn.rs": {
+      "git_blob": "4e85602fda3d2019bffcce33b1b573197903dac4",
+      "sha256": "1bef2a4f4dd6118b0afa1fa900d7b46a3a8a1cfe40e3878dc699c16914789b4e"
+    },
+    "src/macos.rs": {
+      "git_blob": "6590cc21b3bfe51e547db4750ff9a9ac6d460f6b",
+      "sha256": "1cf31df4950c11ee5819134fe4b311d609977f93a5e015af55d98035ee358bdb"
+    },
+    "src/windows.rs": {
+      "git_blob": "8d58fd066155d8febac7761e9de5b2617dde0b7e",
+      "sha256": "ec7f2878ef7de5443b477058d6277f3f587f22643bfe65e9ef527ea1d74754d3"
+    }
+  }
+}

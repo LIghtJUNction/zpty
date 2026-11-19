@@ -1,0 +1,28 @@
+[package]
+name = "zpty"
+version = "0.2.2"
+edition = "2024"
+rust-version = "1.100"
+description = "Native no_std PTY and ConPTY ownership for Linux, macOS and Windows"
+license = "MIT"
+authors = ["LIghtJUNction"]
+repository = "https://github.com/LIghtJUNction/zpty"
+readme = "README.md"
+keywords = ["pty", "terminal", "no-std", "linux"]
+categories = ["os::unix-apis", "no-std"]
+include = ["/src/**", "/examples/**", "/tests/**", "/Cargo.toml", "/Cargo.lock", "/README.md", "/LICENSE", "/SOURCE.json"]
+
+[workspace]
+members = ["."]
+resolver = "3"
+
+[dependencies]
+
+[[example]]
+name = "capture"
+path = "examples/capture.rs"
+
+[[test]]
+name = "darwin_spawn"
+path = "tests/darwin_spawn.rs"
+harness = false

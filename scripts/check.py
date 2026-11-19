@@ -94,6 +94,7 @@ def main():
         command("build", ["cargo", "build", "--locked", "--release", "--lib"])
         units = command("unit-tests", ["cargo", "test", "--locked", "--lib"])
         docs = command("doc-tests", ["cargo", "test", "--locked", "--doc"])
+        command("documentation", ["cargo", "doc", "--locked", "--no-deps"])
         counts = lambda text: [int(n) for n in re.findall(r"test result: ok\. (\d+) passed;", text)]
         report["unit_tests_passed"] = sum(counts(units))
         report["doc_tests_passed"] = sum(counts(docs))

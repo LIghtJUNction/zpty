@@ -117,7 +117,11 @@ def main():
         fixture.mkdir(parents=True, exist_ok=True)
         for name in ("README.md", "LICENSE"):
             (fixture / name).write_text("Ignored package boundary fixture\n", encoding="utf-8")
-        listing = set(command("package-list", ["cargo", "package", "--locked", "--list"]).splitlines())
+        # Cargo prints host-native path separators on Windows.
+        listing = {
+            Path(name).as_posix()
+            for name in command("package-list", ["cargo", "package", "--locked", "--list"]).splitlines()
+        }
         required = set(expected) | {
             "README.md", "LICENSE", "SOURCE.json", "examples/capture.rs",
             "tests/darwin_spawn.rs", "tests/darwin_spawn_abi.c",

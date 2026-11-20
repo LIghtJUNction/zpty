@@ -26,3 +26,8 @@ path = "examples/capture.rs"
 name = "darwin_spawn"
 path = "tests/darwin_spawn.rs"
 harness = false
+
+[[test]]
+name = "linux_restore"
+path = "tests/linux_restore.rs"
+harness = false

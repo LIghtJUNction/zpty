@@ -59,18 +59,35 @@ def main():
     try:
         provenance = json.loads(Path("SOURCE.json").read_text(encoding="utf-8"))
         actual = {p.as_posix() for p in Path("src").rglob("*.rs")}
-        expected = provenance["production_files"]
-        if actual != set(expected):
+        origin = provenance["production_files"]
+        maintained = provenance.get("maintained_files", {})
+        if not isinstance(origin, dict) or not isinstance(maintained, dict):
+            raise ValueError("Source identities must be objects")
+        if actual != set(origin):
             raise ValueError("The five-file extraction source boundary changed")
+        if not set(maintained).issubset(origin):
+            raise ValueError("Maintained identities cannot silently expand the production boundary")
+        expected = {**origin, **maintained}
+        evolved = []
         for name, identity in expected.items():
             data = Path(name).read_bytes()
             sha256 = hashlib.sha256(data).hexdigest()
             blob = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
             if sha256 != identity["sha256"] or blob != identity["git_blob"]:
-                raise ValueError(f"Production source differs from the extraction: {name}")
+                scope = "maintained revision" if name in maintained else "historical extraction"
+                raise ValueError(f"Production source differs from its {scope}: {name}")
+            if name in maintained:
+                if not isinstance(identity.get("reason"), str) or not identity["reason"].strip():
+                    raise ValueError(f"Maintained source needs a change reason: {name}")
+                if (sha256, blob) == (origin[name]["sha256"], origin[name]["git_blob"]):
+                    raise ValueError(f"Unchanged source should retain only its origin identity: {name}")
+                evolved.append(name)
         report["source_identity"] = {
-            "files": len(expected), "unchanged": True,
+            "files": len(expected), "unchanged": not evolved,
             "upstream_commit": provenance["upstream_commit"],
+            "evolved_files": sorted(evolved),
+            "origin_unchanged_files": sorted(set(origin) - set(evolved)),
+            "identity_policy": "historical production_files plus explicit maintained_files overrides",
         }
 
         manifest = tomllib.loads(Path("Cargo.toml").read_text(encoding="utf-8"))
@@ -87,6 +104,12 @@ def main():
         packages = metadata["packages"]
         if len(packages) != 1 or packages[0]["name"] != "zpty" or packages[0]["dependencies"]:
             raise ValueError("zpty must remain one dependency-free package")
+        restore_tests = [entry for entry in manifest.get("test", [])
+                         if entry.get("name") == "linux_restore"]
+        if (len(restore_tests) != 1
+                or restore_tests[0].get("path") != "tests/linux_restore.rs"
+                or restore_tests[0].get("harness") is not False):
+            raise ValueError("The Linux restore fixture must run without libtest worker threads")
         report["package"] = {"name": "zpty", "version": package["version"], "cargo_dependencies": 0}
 
         command("format", ["cargo", "fmt", "--all", "--", "--check"])
@@ -99,6 +122,21 @@ def main():
         report["unit_tests_passed"] = sum(counts(units))
         report["doc_tests_passed"] = sum(counts(docs))
         command("capture", ["cargo", "run", "--locked", "--example", "capture"], timeout=180)
+        if platform.system() == "Linux":
+            restored = command("linux-restore", [
+                "cargo", "test", "--locked", "--test", "linux_restore",
+            ], timeout=60)
+            receipts = [
+                json.loads(line) for line in restored.splitlines()
+                if line.startswith('{"suite":"linux-pty-exec-restore"')
+            ]
+            if (len(receipts) != 1 or receipts[0].get("passed") is not True
+                    or receipts[0].get("same_parent_pid") is not True
+                    or receipts[0].get("child_exit_code") != 7):
+                raise ValueError("The Linux exec/restore fixture did not emit its success receipt")
+            report["linux_restore"] = receipts[0]
+        else:
+            report["linux_restore"] = {"status": "not_run", "reason": "requires real Linux"}
         if platform.system() == "Darwin":
             native = command("darwin-spawn", [
                 "cargo", "test", "--locked", "--test", "darwin_spawn",
@@ -125,7 +163,7 @@ def main():
         }
         required = set(expected) | {
             "README.md", "LICENSE", "SOURCE.json", "examples/capture.rs",
-            "tests/darwin_spawn.rs", "tests/darwin_spawn_abi.c",
+            "tests/darwin_spawn.rs", "tests/darwin_spawn_abi.c", "tests/linux_restore.rs",
         }
         leaked = [name for name in listing if name.startswith(("artifacts/", "target/"))]
         if required - listing or leaked:
@@ -150,6 +188,7 @@ def main():
         "unit_tests_passed": report["unit_tests_passed"],
         "doc_tests_passed": report["doc_tests_passed"],
         "darwin_spawn": report["darwin_spawn"].get("status", "passed"),
+        "linux_restore": report["linux_restore"].get("status", "passed"),
         "output": str(destination),
     }), flush=True)
 

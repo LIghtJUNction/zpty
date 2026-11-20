@@ -119,10 +119,36 @@ pub struct Pty {
 }
 
 impl Pty {
+    /// Reclaim an inherited Linux PTY after replacing this process image.
+    ///
+    /// This performs no I/O, duplication, close, signal, or wait. The descriptor
+    /// and the responsibility for reaping the child move into the returned
+    /// object. `status` is the original value of [`ExitStatus::raw`], if the child
+    /// was already reaped. Descriptor flags are left unchanged.
+    ///
+    /// # Safety
+    ///
+    /// `fd` must be a valid, exclusively owned, nonblocking PTY master.
+    /// No other owner may close it or construct another `Pty` from it. The
+    /// caller must restore `FD_CLOEXEC` before launching unrelated children.
+    /// `pid` must identify the original child/session created for this master,
+    /// in the same process that owns its wait status; it must be positive.
+    /// No other code may concurrently reap that child. `status` must be exactly
+    /// its previously reaped wait status, or `None` if it was not yet reaped.
+    /// In particular, do not reconstruct this from an untrusted checkpoint or
+    /// use a reused PID. Once this returns, the old owner must not be dropped.
+    pub unsafe fn from_raw_parts(fd: i32, pid: i32, status: Option<i32>) -> Self {
+        Self {
+            fd,
+            pid,
+            status: status.map(ExitStatus),
+        }
+    }
+
     /// Create a session with a controlling terminal and execute a program.
     ///
     /// `program` is passed directly to `execve`; resolve PATH before this call.
-    /// `arguments` includes argv[0]. `environment` contains complete `KEY=VALUE`
+    /// `arguments` includes `argv[0]`. `environment` contains complete `KEY=VALUE`
     /// strings, with no implicit inheritance. `close_in_child` lists inherited
     /// descriptors greater than 2 that the child must close before `execve`.
     /// Arguments and environment pointers are prepared before forking. The

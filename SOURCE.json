@@ -4,7 +4,7 @@
   "upstream_directory": "crates/zpty",
   "previous_published_version": "0.2.1",
   "independent_package_version": "0.2.2",
-  "scope": "Repository and package metadata extraction; all five production Rust files preserved byte-for-byte",
+  "scope": "Historical extraction provenance is retained in production_files; reviewed maintenance changes are tracked in maintained_files",
   "production_files": {
     "src/lib.rs": {
       "git_blob": "ea960f56a813336a5c013489f7949ecc368270e2",
@@ -25,6 +25,14 @@
     "src/windows.rs": {
       "git_blob": "8d58fd066155d8febac7761e9de5b2617dde0b7e",
       "sha256": "ec7f2878ef7de5443b477058d6277f3f587f22643bfe65e9ef527ea1d74754d3"
+    }
+  },
+  "origin_scope": "Repository and package metadata extraction; all five production Rust files preserved byte-for-byte",
+  "maintained_files": {
+    "src/linux.rs": {
+      "git_blob": "77bba5f568804bd0ece6c7249624c5a6af317a19",
+      "sha256": "f81146e1f78780c09ccafb260d10192bc7bd2bc6fc483ab03d858c56f57785f4",
+      "reason": "Add Linux-only unsafe restoration of inherited PTY ownership after same-PID exec; descriptor flags and process ownership remain caller responsibilities."
     }
   }
 }
